@@ -11,7 +11,13 @@ In order to utitlize this, the user must create two classes:
 
 All generics T must implement the interface ISolution, whereas all generics T2 can be any type (although preferrably a primitive type).
 
-Let's start with a simple scenario. A factory wants to maximize their profits for the next month. They produce two products, which we will simply call X1 and X2. They can produce whatever mixture they want, but they can only produce 200 units of them in one month. They also have labor and resource constraints (we'll assume that those have been allocated already). ProfitMaximization might start like this,
+## The Scenario
+
+Let's start with a simple scenario. A factory wants to maximize their profits for the next month. They produce two products, which we will simply call X1 and X2. They can produce whatever mixture they want, but they can only produce 200 units of them in one month. They also have labor and resource constraints (we'll assume that those have been allocated already).
+
+## Creating the model
+
+Any Optimization\<T\> class must define its constraints before any solutions can be created. This is easiest to do when the class is being constructed. We can also define a range of inputs for X1 and X2.
 
 ```
 public class ProfitMaximization : Optimization<Solution>
