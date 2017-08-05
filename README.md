@@ -15,6 +15,36 @@ All generics T must implement the interface ISolution, whereas all generics T2 c
 
 Let's start with a simple scenario. A factory wants to maximize their profits for the next month. They produce two products, which we will simply call X1 and X2. They can produce whatever mixture they want, but they can only produce 200 units of them in one month. They also have labor and resource constraints (we'll assume that those have been allocated already).
 
+## Shaping the solutions
+
+Before getting into how the model is limited, we should define a goal. This is done in the output class itself:
+
+```
+public class Solution : ISolution<int>
+{
+    // Amount of X1 to produce.
+    public int X1 { get; }
+    
+    // Amount of X2 to produce.
+    public int X2 { get; }
+    
+    // The amount of profit these combinations make.
+    public int Goal => (350 * X1) + (300 * X2);
+    
+    // The list of output produced by the constraints of the producer class.
+    public IList<bool> Constraints { get; set; }
+    
+    // Whether or not this solution is valid.
+    public bool IsValid => !Constraints.Any(x => x == false);
+
+    public Solution(int x1, int x2)
+    {
+        X1 = x1;
+        X2 = x2;
+    }
+}
+```
+
 ## Creating the model
 
 Any Optimization\<T\> class must define its constraints before any solutions can be created. This is easiest to do when the class is being constructed. We can also define a range of inputs for X1 and X2.
@@ -109,28 +139,11 @@ public class ProfitMaximization : Optimization<Solution>
 }
 ```
 
-Having all of that, what does the Solution class look like? It could look like this:
-
-```
-public class Solution : ISolution<int>
-{
-    public int X1 { get; }
-    public int X2 { get; }
-    public int Goal => (350 * X1) + (300 * X2);
-    public IList<bool> Constraints { get; set; }
-    public bool IsValid => !Constraints.Any(x => x == false);
-
-    public Solution(int x1, int x2)
-    {
-        X1 = x1;
-        X2 = x2;
-    }
-}
-```
-
 The profits produced by each solution is determined by the int Goal property. This class is intended to be immutable, but right now that is not possible; the IList\<bool\> property needs to be created after the class is constructed. As it stands, it simply stores the bool values of each constraint, rather than the delegate itself, in order to save time on exectuing the delegates.
 
-This is it for the model. To use it is quite simple:
+## Using the model
+
+To use it is quite simple:
 
 ```
 public class Program
