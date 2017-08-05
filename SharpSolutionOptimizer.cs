@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SharpSolutionOptimizer
 {
@@ -8,27 +9,25 @@ namespace SharpSolutionOptimizer
         public delegate bool Constraint(T sol);
         public static Random Mutation = new Random();
 
-        public IList<T> CompletedGoals { get; } = new List<T>();
+        public IList<T> CompletedSolutions { get; } = new List<T>();
         public IList<Constraint> Constraints { get; } = new List<Constraint>();
 
         public abstract T CreateSolution();
         public abstract T GetBestSolution();
 
-        public void Add(Constraint sol)
+        public void Add(Constraint con)
         {
-            Constraints.Add(sol);
+            Constraints.Add(con);
+        }
+
+        public void Add(T sol)
+        {
+            CompletedSolutions.Add(sol);
         }
 
         public IList<bool> ValidateSolution(T sol)
         {
-            var validationlist = new List<bool>();
-
-            foreach (var constraint in Constraints)
-            {
-                validationlist.Add(constraint(sol));
-            }
-
-            return validationlist;
+            return Constraints.Select(x => x(sol)).ToList();
         }
     }
 
