@@ -20,27 +20,23 @@ Let's start with a simple scenario. A factory wants to maximize their profits fo
 Before getting into how the model is limited, we should define a goal. This is done in the output class itself:
 
 ```
-public class Solution : ISolution<int>
+public struct Solution : ISolution<int>
 {
-    // Amount of X1 to produce.
     public int X1 { get; }
-    
-    // Amount of X2 to produce.
     public int X2 { get; }
-    
-    // The amount of profit these combinations make.
     public int Goal => (350 * X1) + (300 * X2);
-    
-    // The list of output produced by the constraints of the producer class.
-    public IList<bool> Constraints { get; set; }
-    
-    // Whether or not this solution is valid.
-    public bool IsValid => !Constraints.Any(x => x == false);
+    public bool IsValid { get; private set; }
 
     public Solution(int x1, int x2)
     {
         X1 = x1;
         X2 = x2;
+        IsValid = false;
+    }
+
+    public void Validate(IEnumerable<bool> constraints)
+    {
+        IsValid = !constraints.Any(x => x == false);
     }
 }
 ```
@@ -52,19 +48,17 @@ Any Optimization\<T\> class must define its constraints before any solutions can
 ```
 public class ProfitMaximization : Optimization<Solution>
 {
-    public const int Minimum = 0;
+    public const int Minimum = 1;
     public const int Maximum = 174;
 
     public ProfitMaximization()
     {
-        // We can make whatever mixture we want, but we have a maximum producable amount of 200 units.
-        Add(x => x.X1 + x.X2 <= 200);
-        
-        // Let's say these are the man hours available.
-        Add(x => (9 * x.X1) + (6 * x.X2) <= 1566);
-        
-        // Let's say this is the resources available.
-        Add(x => (12 * x.X1) + (16 * x.X2) <= 2880);
+        Constraints = new List<Constraint>(3)
+        {
+            x => x.X1 + x.X2 <= 200,
+            x => (9 * x.X1) + (6 * x.X2) <= 1566,
+            x => (12 * x.X1) + (16 * x.X2) <= 2880
+        };
     }
 }
 ```
@@ -74,14 +68,8 @@ The ProfitMaximization implements a method from Optimization\<T\> called CreateS
 ```
 public override Solution CreateSolution()
 {
-    // Create a solution.
     var solution = new Solution(Mutation.Next(Minimum, Maximum), Mutation.Next(Minimum, Maximum));
-    
-    // Check whether or not the solution is valid.
-    solution.Constraints = ValidateSolution(solution);
-    
-    // Add it to CompletedSolutions.
-    Add(solution);
+    solution.Validate(ValidateSolution(solution));
 
     return solution;
 }
@@ -92,9 +80,9 @@ These output classes are then added to the CompletedSolutions property of Profit
 In order to find the best solution, the user must implement the abstract method GetBestSolution from Optimization\<T\>. Implementation does not matter; however, what does matter, is that this function must return the best solution among the ones created. This depends on what the user is aiming to accomplish. For this example, this method would find the solution with the highest profit. It would look something like this:
 
 ```
-public override Solution GetBestSolution()
+public override Solution GetBestSolution(IEnumerable<Solution> solutionlist)
 {
-    return CompletedSolutions.Where(x => x.IsValid).OrderByDescending(x => x.Goal).FirstOrDefault();
+    return solutionlist.Where(x => x.IsValid).OrderByDescending(x => x.Goal).FirstOrDefault();
 }
 ```
 
@@ -103,38 +91,50 @@ So long as CompletedSolutions.Count > 0, then this method will always return a s
 ```
 public class ProfitMaximization : Optimization<Solution>
 {
-    public const int Minimum = 0;
+    public const int Minimum = 2;
     public const int Maximum = 174;
 
     public ProfitMaximization()
     {
-        // We can make whatever mixture we want, but we have a maximum producable amount of 200 units.
-        Add(x => x.X1 + x.X2 <= 200);
-        
-        // Let's say these are the man hours available.
-        Add(x => (9 * x.X1) + (6 * x.X2) <= 1566);
-        
-        // Let's say this is the resources available.
-        Add(x => (12 * x.X1) + (16 * x.X2) <= 2880);
+        Constraints = new List<Constraint>(3)
+        {
+            x => x.X1 + x.X2 <= 200,
+            x => (9 * x.X1) + (6 * x.X2) <= 1566,
+            x => (12 * x.X1) + (16 * x.X2) <= 2880
+        };
     }
 
     public override Solution CreateSolution()
     {
-        // Create a solution.
         var solution = new Solution(Mutation.Next(Minimum, Maximum), Mutation.Next(Minimum, Maximum));
-        
-        // Check whether or not the solution is valid.
-        solution.Constraints = ValidateSolution(solution);
-        
-        // Add it to CompletedSolutions.
-        Add(solution);
+        solution.Validate(ValidateSolution(solution));
 
         return solution;
     }
 
-    public override Solution GetBestSolution()
+    public override Solution GetBestSolution(IEnumerable<Solution> solutionlist)
     {
-        return CompletedSolutions.Where(x => x.IsValid).OrderByDescending(x => x.Goal).FirstOrDefault();
+        return solutionlist.Where(x => x.IsValid).OrderByDescending(x => x.Goal).FirstOrDefault();
+    }
+}
+
+public struct Solution : ISolution<int>
+{
+    public int X1 { get; }
+    public int X2 { get; }
+    public int Goal => (350 * X1) + (300 * X2);
+    public bool IsValid { get; private set; }
+
+    public Solution(int x1, int x2)
+    {
+        X1 = x1;
+        X2 = x2;
+        IsValid = false;
+    }
+
+    public void Validate(IEnumerable<bool> constraints)
+    {
+        IsValid = !constraints.Any(x => x == false);
     }
 }
 ```
@@ -154,13 +154,10 @@ public class Program
         var testOptimization = new ProfitMaximization();
 
         // Run it 100,000 times.
-        for (int i = 0; i < 100_000; i++)
-        {
-            testOptimization.CreateSolution();
-        }
+        testOptimization.CompletedSolutions = testOptimization.CreateMultipleSolutions(100_000);
 
         // Get the best solution.
-        var solution = testOptimization.GetBestSolution();
+        var solution = testOptimization.GetBestSolution(testOptimization.CompletedSolutions);
         
         // Output the solution to the console.
         var outputstring = new StringBuilder();
