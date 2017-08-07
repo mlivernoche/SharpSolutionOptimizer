@@ -154,10 +154,10 @@ public class Program
         var testOptimization = new ProfitMaximization();
 
         // Run it 100,000 times.
-        testOptimization.CompletedSolutions = testOptimization.CreateMultipleSolutions(100_000);
+        var completedSolutions = testOptimization.CreateMultipleSolutions(100_000);
 
         // Get the best solution.
-        var solution = testOptimization.GetBestSolution(testOptimization.CompletedSolutions);
+        var solution = testOptimization.GetBestSolution(completedSolutions);
         
         // Output the solution to the console.
         var outputstring = new StringBuilder();
