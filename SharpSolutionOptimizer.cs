@@ -60,12 +60,12 @@ namespace SharpSolutionOptimizer
         }
 
         /// <summary>
-        /// This will execute execute Task.Run, in which the tasks is to find the best solution in an IEnumerable of possible solutions. It will then return the best of those best.
+        /// Creates an enumerable object of the best solution from multiple parallel runs of CreateMultipleSolutions and returns the best of that enumerable object. 
         /// </summary>
         /// <param name="solutionspertask">The amount of solutions each task should find.</param>
         /// <param name="numoftasks">The amount of tasks to submit to the thread pool.</param>
         /// <returns>The best of the best of the best, sir! With honors.</returns>
-        public T RunParallelOptimization(int solutionspertask, int numoftasks)
+        public T GetBestSolutionInParallel(int solutionspertask, int numoftasks)
         {
             var tasks = new ConcurrentBag<Action>();
             var possibleSolutions = new ConcurrentBag<T>();
