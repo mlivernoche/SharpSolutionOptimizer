@@ -15,7 +15,7 @@ namespace SharpSolutionOptimizer
         private static Random mutator;
 
         protected static Random Mutation => mutator ?? (mutator = new Random());
-
+        
         public IEnumerable<Constraint> Constraints { get; protected set; }
 
         public abstract T CreateSolution();
@@ -66,20 +66,23 @@ namespace SharpSolutionOptimizer
         /// <returns>The best of the best of the best, sir! With honors.</returns>
         public T GetBestSolutionInParallel(int solutionspertask, int numoftasks)
         {
-            var tasks = new ConcurrentBag<Action>();
+            // Elements are added sequentially, so we can use an array and avoid having to cast this later.
+            var tasks = new Action[numoftasks];
+
+            // Not using a System.Collections.Concurrent collection (such as using T[] or List<T>) leads to problems. This solves it.
             var possibleSolutions = new ConcurrentBag<T>();
 
             for (int i = 0; i < numoftasks; i++)
             {
-                tasks.Add(new Action(
+                tasks[i] = new Action(
                     () =>
                     {
                         var solution = GetBestSolution(CreateMultipleSolutions(solutionspertask));
                         possibleSolutions.Add(solution);
-                    }));
+                    });
             }
 
-            Parallel.Invoke(new ParallelOptions() { MaxDegreeOfParallelism = numoftasks }, tasks.ToArray());
+            Parallel.Invoke(new ParallelOptions() { MaxDegreeOfParallelism = numoftasks }, tasks);
             return GetBestSolution(possibleSolutions);
         }
     }
