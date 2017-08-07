@@ -16,7 +16,6 @@ namespace SharpSolutionOptimizer
 
         protected static Random Mutation => mutator ?? (mutator = new Random());
 
-        public IEnumerable<T> CompletedSolutions { get; set; }
         public IEnumerable<Constraint> Constraints { get; protected set; }
 
         public abstract T CreateSolution();
