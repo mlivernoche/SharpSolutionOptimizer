@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -40,7 +41,7 @@ namespace SharpSolutionOptimizer
         {
             var list = new List<T>(amount);
 
-            for(int i = 0; i < amount; i++)
+            for (int i = 0; i < amount; i++)
             {
                 list.Add(CreateSolution());
             }
@@ -64,17 +65,23 @@ namespace SharpSolutionOptimizer
         /// <param name="solutionspertask">The amount of solutions each task should find.</param>
         /// <param name="numoftasks">The amount of tasks to submit to the thread pool.</param>
         /// <returns>The best of the best of the best, sir! With honors.</returns>
-        public async Task<T> RunParallelOptimization(int solutionspertask, int numoftasks)
+        public T RunParallelOptimization(int solutionspertask, int numoftasks)
         {
-            var tasks = new Task<T>[numoftasks];
+            var tasks = new ConcurrentBag<Action>();
+            var possibleSolutions = new ConcurrentBag<T>();
 
             for (int i = 0; i < numoftasks; i++)
             {
-                tasks[i] = Task.Run(() => GetBestSolution(CreateMultipleSolutions(solutionspertask)));
+                tasks.Add(new Action(
+                    () =>
+                    {
+                        var solution = GetBestSolution(CreateMultipleSolutions(solutionspertask));
+                        possibleSolutions.Add(solution);
+                    }));
             }
 
-            await Task.WhenAll(tasks);
-            return GetBestSolution(tasks.Select(x => x.Result));
+            Parallel.Invoke(new ParallelOptions() { MaxDegreeOfParallelism = numoftasks }, tasks.ToArray());
+            return GetBestSolution(possibleSolutions);
         }
     }
 
